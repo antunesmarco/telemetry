@@ -1,34 +1,40 @@
 import streamlit as st
 import plotly.graph_objects as go
+from PIL import Image
 
 
-def get_step(step):
-    step = 0 if step == None else 1
-    return step
+def get_stage():
+    stage = 'parachute'
+    return stage
 
 
-def load_step_image(step):
-    step = get_step(step)
-    if step == 0:
-        st.image('../../reports/figures/steps0.png')
-    elif step == 1:
-        st.image('../../reports/figures/steps1-Liftoff.png')
-    elif step == 2:
-        st.image('../../reports/figures/steps2-MECO.png')
-    elif step == 3:
-        st.image('../../reports/figures/steps3-Fairing.png')
-    elif step == 4:
-        st.image('../../reports/figures/steps4-Landing.png')
+def show_cgi(stage, col):
+    stage_image = {
+        'liftoff': '../../data/raw/liftoff.png',
+        'meco': '../../data/raw/meco.png',
+        'apogee': '../../data/raw/apogee.png',
+        'parachute': '../../data/raw/parachute.png',
+        'landing': '../../data/raw/landing.png'
+    }
+    image = Image.open(stage_image[stage])
+    col.image(image, use_column_width='auto')
+    # streamlit.image(image, caption=None, width=None, use_column_width=None, clamp=False, channels='RGB', output_format='auto')
     return
 
 
-def show_step(step):
-    col1, col2, col3 = st.columns(3)
+def show_stagemeter(stage, col):
+    stage_id = {
+        'liftoff': 1,
+        'meco': 2,
+        'apogee': 3,
+        'parachute': 5,
+        'landing': 6
+    }
     figsteps = go.Figure(go.Indicator(
         mode="gauge",
-        value=4,
+        value=stage_id[stage],
         domain={'x': [0, 1], 'y': [0, 1]},
-        title={'text': "Steps", 'font': {'size': 24}},
+        title={'text': "Stage", 'font': {'size': 24}},
         gauge={
             'axis': {
                 'range': [None, 6], 'tickwidth': 1, 'tickcolor': "darkblue",
@@ -56,5 +62,14 @@ def show_step(step):
 
     figsteps.update_layout(font={'color': "cyan", 'family': "Arial"})
     figsteps.update_traces(name="Liftoff", selector=dict(type='indicator'))
-    col2.plotly_chart(figsteps)
+    col.plotly_chart(figsteps)
+    return
+
+
+def show_stage():
+    col1, col2, col3 = st.columns(3)
+    stage = get_stage()
+    show_stagemeter(stage, col1)
+    show_cgi(stage, col3)
+
     return

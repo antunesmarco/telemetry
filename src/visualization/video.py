@@ -1,9 +1,8 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
 
 
-def show_video():
-    url = 'https://www.youtube.com/watch?v=7OuP0V_BPuI'
-    st.video(url)
+def show_video(col):
+    # url = 'https://www.youtube.com/watch?v=7OuP0V_BPuI'
+    url = 'https://www.youtube.com/watch?v=ABtqLOhSFZc?autoplay=1'
+    col.video(url, 1)
     return
