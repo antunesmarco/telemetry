@@ -1,7 +1,7 @@
 import logging
 # from rocket_dashboard_1 import initiate_dash
+import time
 import pandas as pd
-
 from rocket2 import Rocket
 
 
@@ -17,28 +17,35 @@ def calc_accel(self, v1, v0, t1, t0):
     return (v1 - v0) / (t1 - t0)
 
 
-def calc_m1(mdry, mfuel, t, txq):
-    return mdry + (mfuel - (mfuel * t * txq))
-
-
 def calc_v1(m1, m0, v0, f, t1, t0):
-    return (f * (t1 - t0) + (m0 * v0)) / m1
+    v1 = (f * (t1 - t0) + (m0 * v0)) / m1
+    logger.info(f'v1: {v1}')
+    return v1
 
 
 def calc_y1(v, t):
-    return v * t
+    y1 = v * t
+    logger.info(f'y1: {y1}')
+    return y1
 
 
 def react(rdata, g, y0, y1, v0, t0, t1, m0):
+    logger.info(f'rdata: {rdata}')
+    logger.info(f'y0: {y0}, y1: {y1}')
+    logger.info(f'v0: {v0}')
+    logger.info(f't0: {t0}, t1: {t1}')
+    logger.info(f'm0: {m0}')
     if rdata['fuel'] == 0:
         rdata['thrust'] = 0
         weight = rdata['dry_mass'] * g
     else:
+        rdata['fuel'] -= rdata['burn_rate'] if rdata['burn_rate'] <= rdata['fuel'] else rdata['fuel']
         weight = (rdata['dry_mass'] + rdata['fuel']) * g
 
     net_force = weight + rdata['thrust']
-    # logger.info(f'net_force: {net_force:.2f}')
-    m1 = calc_m1(rdata['dry_mass'], rdata['fuel'], t1, rdata['burn_rate'])
+    logger.info(f'net_force: {net_force:.2f}')
+
+    m1 = rdata['dry_mass'] + rdata['fuel']
     rdata['wet_mass'] = m1
 
     v1 = calc_v1(m1, m0, v0, net_force, t1, t0)
@@ -63,12 +70,12 @@ def react(rdata, g, y0, y1, v0, t0, t1, m0):
 
 
 logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler(__name__ + '.log')
+f_handler = logging.FileHandler('rs.log')
 f_handler.setLevel(logging.INFO)
 f_format = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(lineno)d - %(levelname)s - %(message)s')
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
-logging.basicConfig(level=logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def liftoff():
@@ -81,6 +88,8 @@ def liftoff():
     t1 = 1  # segundos
     logger.info(f't0: {t0}s')
     r1 = Rocket(dry_mass=1, fuel=1)
+
+    cols = ["stage", "velocity", "fuel", "wet_mass", "altitude", "thrust"]
     rdata = r1.send_data()
     logger.info(f'stage: {rdata["stage"]}, velocity: {rdata["velocity"]}, fuel: {rdata["fuel"]}, ' \
                 f'wet_mass: {rdata["wet_mass"]}, altitude: {rdata["altitude"]}')
@@ -88,22 +97,25 @@ def liftoff():
     m0 = rdata['wet_mass']
     r1.ignite()
     rdata = r1.send_data()
-    rs = pd.DataFrame()
+    rs = pd.DataFrame(rdata, index=[0])
 
     while t1 < 20:
+        time.sleep(1)
         logger.info(f't1: {t1}s')
-        rs.append(pd.DataFrame(rdata, index=[t1]).to_csv('rs.csv'))
         rdata, y0, v0, t0 = react(rdata, g, y0, y1, v0, t0, t1, m0)
         logger.info(f'stage: {rdata["stage"]}, velocity: {rdata["velocity"]}, fuel: {rdata["fuel"]}, ' \
                     f'wet_mass: {rdata["wet_mass"]}, altitude: {rdata["altitude"]}')
 
-        if y0 == 0:
+        rs.append(pd.DataFrame(rdata, index=[t1]))
+        rs.to_csv('rs.csv')
+        logger.info(f'rs: {rs}')
+
+        if y0 <= 0:
+            v0 = 0
             break
-        # refresh_dash(updated_data)
-        # r1.read_sensors(updated_data)
+
         t1 += 1
         r1.burn_fuel()
-        rdata = r1.send_data()
 
     print(f'FINAL: {r1}')
 

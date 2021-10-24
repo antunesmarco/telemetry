@@ -19,7 +19,7 @@ def get_data():
 def streaming_data(**kwargs):
     df = get_data()
     df['timestamp'] = [pd.Timestamp.now()]
-    logger.info(f'df: {df}')
+    logger.info(f'df com timestamp: {df}')
     return df.set_index('timestamp')
 
 
@@ -38,15 +38,12 @@ def initiate_dash():
 
 
 logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler('rm.log')
+f_handler = logging.FileHandler('rd.log')
 f_handler.setLevel(logging.DEBUG)
 f_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
 logger.setLevel(logging.DEBUG)
-
-# r3 = Rocket(fuel=100)
-# logger.info(f'r3: {r3}')
 
 df = PeriodicDataFrame(streaming_data, interval='1s')
 logger.info(f'df: {df}')
