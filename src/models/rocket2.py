@@ -2,7 +2,7 @@ import logging
 
 
 logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler(__name__ + '.log')
+f_handler = logging.FileHandler(__name__ + '.log', mode='w')
 f_handler.setLevel(logging.DEBUG)
 f_format = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(lineno)d - %(levelname)s - %(message)s')
 f_handler.setFormatter(f_format)

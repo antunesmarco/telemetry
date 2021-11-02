@@ -49,17 +49,16 @@ def react(rdata, g, y0, y1, v0, t0, t1, m0):
     rdata['wet_mass'] = m1
 
     v1 = calc_v1(m1, m0, v0, net_force, t1, t0)
-    rdata['velocity'] = v1
 
     y1 += calc_y1(v1, 1)
-    rdata['altitude'] = y1
 
     if y1 <= 0:
         y1 = 0
         v1 = 0
 
     y0 = y1
-
+    rdata['altitude'] = y1
+    rdata['velocity'] = v1 if v1 >=0 else v1 * -1
     logger.info(f"thrust: {rdata['thrust']:.2f}N, weight: {weight:.2f}N, net_force: {net_force:,.2f}N")
     logger.info(f"m1: {m1: .2f}Kg, v1: {v1:,.2f}m/s, y1: {y1:,.2f}m")
 
@@ -70,13 +69,14 @@ def react(rdata, g, y0, y1, v0, t0, t1, m0):
 
 
 logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler('rs.log')
+f_handler = logging.FileHandler('rs.log', mode='w')
 f_handler.setLevel(logging.INFO)
 f_format = logging.Formatter('%(asctime)s - %(name)s - %(funcName)s - %(lineno)d - %(levelname)s - %(message)s')
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
 logger.setLevel(logging.DEBUG)
 
+cols = ['stage', 'altitude', 'velocity', 'fuel', 'wet_mass', 'thrust']
 
 def liftoff():
     g = -9.8  # m/s2
@@ -102,15 +102,16 @@ def liftoff():
     while t1 < 20:
         time.sleep(1)
         logger.info(f't1: {t1}s')
-        rdata, y0, v0, t0 = react(rdata, g, y0, y1, v0, t0, t1, m0)
-        logger.info(f'stage: {rdata["stage"]}, velocity: {rdata["velocity"]}, fuel: {rdata["fuel"]}, ' \
-                    f'wet_mass: {rdata["wet_mass"]}, altitude: {rdata["altitude"]}')
-
-        rs.append(pd.DataFrame(rdata, index=[t1]))
+        rdata, y1, v1, m1 = react(rdata, g, y0, y1, v0, t0, t1, m0)
+        dfr = pd.DataFrame(rdata, index=[t1])
+        logger.info(f'dfr: {dfr[cols]}')
+        logger.info(f'rs ANTES: {rs[cols]}')
+        rs = rs.append(dfr, ignore_index=True)
         rs.to_csv('rs.csv')
-        logger.info(f'rs: {rs}')
-
+        logger.info(f'rs DEPOIS: {rs[cols]}')
+        y0 = y1
         if y0 <= 0:
+            y1 = 0
             v0 = 0
             break
 
